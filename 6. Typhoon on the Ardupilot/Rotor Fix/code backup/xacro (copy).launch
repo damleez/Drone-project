@@ -1,0 +1,92 @@
+<launch>
+  <!--************************* robot configs *************************-->
+  <!-- ### Spawn Position ###-->
+  <arg name="x"                             default="0"/>
+  <arg name="y"                             default="0"/>
+  <arg name="z"                             default="0"/>
+  <arg name="R"                             default="0"/>
+  <arg name="P"                             default="0"/>
+  <arg name="Y"                             default="0"/>
+    
+  <!-- ### Sensor ###-->
+  <arg name='model'                default="$(find dam-drone)/xacro/drone_base.xacro"/>
+  <arg name="enable_mono"          default="false" /> <!-- mono camera -->
+  <arg name="enable_depth"         default="false" /> <!-- depth camera -->
+  <arg name="enable_imu"           default="false" /> <!-- IMU sensor -->
+  <arg name="enable_lidar"         default="false" /> <!-- velodyne 3d lidar sensor -->
+  <arg if="$(arg enable_lidar)"    name="rotation_topic"    default="/velodyne_holder_joint_velocity_controller/command" />
+  <arg if="$(arg enable_lidar)"    name="rotation_speed"    default="2.0944" /> <!-- rad/sec -->
+  
+  <!-- ### Simulation Environment ###-->
+  <arg name="use_mavros"                    default='false' />
+  <param name="robot_description"          command="$(find xacro)/xacro $(arg model)
+                                                    enable_mono:=$(arg enable_mono)
+                                                    enable_depth:=$(arg enable_depth)
+                                                    enable_imu:=$(arg enable_imu)
+                                                    enable_lidar:=$(arg enable_lidar)"/>
+  <!--*****************************************************************-->
+
+  <!--*************************** Mavros ****************************-->
+  <arg name="fcu_url"                        default="udp://127.0.0.1:14551@127.0.0.1:14555" />
+  <!--<arg name="gcs_url"                        default="udp://127.0.0.1:14855@127.0.0.1:14855" />-->
+  <arg name="gcs_url"                        default="udp://127.0.0.1:51011@127.0.0.1:51012" />
+  <!--*****************************************************************-->
+
+  <!--***************************** Rviz  ******************************-->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find dam-drone)/urdf.rviz" required="True" />
+
+    <!-- Launch Gazebo World -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="use_sim_time" value="true"/>
+    <arg name="debug"        value="false"/>
+    <arg name="gui"          value="true" />
+  </include>
+
+  <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
+          args="-param robot_description
+                -urdf 
+                -model $(arg model)
+                -x $(arg x)
+                -y $(arg y)
+                -z $(arg z)
+                -R $(arg R)
+                -P $(arg P)
+                -Y $(arg Y)" />
+
+  <!-- ### 3D Lidar Rotation Commander ### -->
+  <group if="$(arg enable_lidar)">
+    <rosparam file="$(find dam-drone)/xacro/drone.yaml" command="load"/>
+
+    <node pkg="controller_manager"    type="spawner"                    name="controller_spawner_velodyne"   respawn="false"    output="screen"
+          args="velodyne_holder_joint_velocity_controller joint_state_controller"/>
+    <node pkg="rostopic"              type="rostopic"              name="rostopic" args="pub $(arg rotation_topic) std_msgs/Float64 $(arg rotation_speed)"/>
+  </group>
+
+  <group if="$(arg enable_lidar)">
+    <rosparam file="$(find dam-drone)/xacro/drone.yaml" command="load"/>
+
+    <node pkg="controller_manager"    type="spawner"                    name="controller_spawner_gimbal"   respawn="false"    output="screen"
+          args="gimbal_roll_controller
+                gimbal_pitch_controller
+                gimbal_yaw_controller"/>
+    <node pkg="dam-drone"          type="gimbal_controller"          name="gimbal_controller" />
+  </group>
+  <!--*****************************************************************-->   
+
+  <!--**************************** Mavros *****************************-->
+  <group if="$(arg use_mavros)">
+    <include file="$(find mavros)/launch/apm.launch">
+      <arg name="fcu_url"                   value="$(arg fcu_url)"/>
+      <arg name="gcs_url"                   value="$(arg gcs_url)"/>
+    </include>
+
+  </group>
+  <!--*****************************************************************-->
+  <!-- URDF로 설정된 로봇의 관절 상태를 sensor_msgs/JointState 형태로 publish -->
+  <node pkg='joint_state_publisher'     type='joint_state_publisher'      name='joint_state_publisher'/>
+  <node pkg='joint_state_publisher_gui' type='joint_state_publisher_gui'  name='joint_state_publisher_gui'/>
+
+  <!-- URDF로 설정된 로봇 정보와 sensor_msgs/JointState로 Forward Kinematics를 계산하여 tf 메시지로 publish -->
+  <node pkg='robot_state_publisher'     type='robot_state_publisher'      name='robot_state_publisher'/>
+
+</launch>

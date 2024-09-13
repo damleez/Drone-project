@@ -1,0 +1,20 @@
+joint_state_controller:
+  type: joint_state_controller/JointStateController
+  publish_rate: 50
+
+velodyne_holder_joint_velocity_controller:
+  type: velocity_controllers/JointVelocityController
+  joint: velodyne_holder_joint
+  pid: {p: 3.0, i: 1.0, d: 0.0}
+
+# gazebo_ros_control:
+#   pid_gains:
+#     velodyne_holder_joint: 
+#       p: 3.0
+#       i: 1.0
+#       d: 0.0
+
+#velodyne_holder_joint_position_controller:
+#  type: effort_controllers/JointPositionController
+#  joint: velodyne_holder_joint
+#  pid: {p: 3.0, i: 1.0, d: 0.0}

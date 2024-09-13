@@ -1,0 +1,200 @@
+<?xml version="1.0"?>
+<robot name="dam-typhoon" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:arg name="camera_visual" default="true"/>
+  <xacro:arg name="imu_visual"    default="true"/>
+
+  <!--Gazebo Color-->
+  <gazebo reference="base_link">
+    <material>Gazebo/DarkGrey</material>
+  </gazebo>
+  <gazebo reference="cgo3_mount_link">
+    <material>Gazebo/Black</material>
+  </gazebo>
+  <gazebo reference="cgo3_vertical_arm_link">
+    <material>Gazebo/Black</material>
+  </gazebo>
+  <gazebo reference="cgo3_horizontal_arm_link">
+    <material>Gazebo/Black</material>
+  </gazebo>
+  <gazebo reference="cgo3_camera_link">
+    <material>Gazebo/Black</material>
+  </gazebo>
+  <gazebo reference="left_leg">
+    <material>Gazebo/DarkGrey</material>
+  </gazebo>
+  <gazebo reference="right_leg">
+    <material>Gazebo/DarkGrey</material>
+  </gazebo>
+  <gazebo reference="rotor_0">
+    <material>Gazebo/Blue</material>
+  </gazebo>
+  <gazebo reference="rotor_1">
+    <material>Gazebo/Blue</material>
+  </gazebo>
+  <gazebo reference="rotor_2">
+    <material>Gazebo/Blue</material>
+  </gazebo>
+  <gazebo reference="rotor_3">
+    <material>Gazebo/Blue</material>
+  </gazebo>
+  <gazebo reference="rotor_4">
+    <material>Gazebo/Blue</material>
+  </gazebo>
+  <gazebo reference="rotor_5">
+    <material>Gazebo/Blue</material>
+  </gazebo>
+  <gazebo reference="lidar_on_drone_link">
+    <material>Gazebo/Orange</material>
+  </gazebo>
+
+
+  <!--imu plugin -->
+  <gazebo reference="typhoon_h480/imu_link"> 
+    <gravity>true</gravity>
+      <sensor name="real_imu_sensor" type="imu">
+      <pose>0 0 0 3.141593 0 0</pose>
+      <always_on>true</always_on>
+      <update_rate>1000</update_rate>
+      <visualize>true</visualize>
+      <topic>__default_topic__</topic>
+      <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+        <robotNamespace>/imu</robotNamespace>
+        <bodyName>imu_frame</bodyName>
+        <frameName>typhoon_h480/imu_link</frameName>
+        <topicName>base_link</topicName>
+        <updateRateHZ>50.0</updateRateHZ>
+        <gaussianNoise>0.0</gaussianNoise>
+        <xyzOffset>0 0 0</xyzOffset>
+        <rpyOffset>0 0 0</rpyOffset>
+      </plugin>
+    </sensor>
+  </gazebo>
+  
+  <!--camera plugin-->
+  <gazebo reference="cgo3_camera_link">
+    <sensor type="camera" name="camera1">
+      <update_rate>30.0</update_rate>
+      <camera name="head">
+        <horizontal_fov>0.6</horizontal_fov>
+        <image>
+          <width>256</width>
+          <height>256</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.1</near>
+          <far>100</far>
+        </clip>
+      </camera>
+      <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
+        <alwaysOn>true</alwaysOn>
+        <updateRate>0.0</updateRate>
+        <cameraName>camera1</cameraName>
+        <imageTopicName>image_raw</imageTopicName>
+        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+        <pointCloudTopicName>points</pointCloudTopicName>
+        <frameName>cgo3_camera_link</frameName>
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+
+  <!--depth camera plugin -->
+  <gazebo reference="camera_link">
+    <material>Gazebo/Black</material>
+    <sensor name="realsense_D435" type="depth">
+      <pose>0 0 0 0 0 0</pose>
+      <always_on>1</always_on>
+      <update_rate>60</update_rate>
+      <visualize>$(arg camera_visual)</visualize>
+      <camera>
+        <horizontal_fov>1.3439</horizontal_fov>
+        <image>
+          <width>1280</width>
+          <height>720</height>
+          <format>R8G8B8</format>
+        </image>
+        <depth_camera>
+        </depth_camera>
+        <clip>
+          <near>0.05</near>
+          <far>10</far>
+        </clip>
+      </camera>
+      <plugin name="depth_camera_controller" filename="libgazebo_ros_openni_kinect.so">
+        <baseline>0.2</baseline>
+        <alwaysOn>true</alwaysOn>
+        <updateRate>60</updateRate>
+        <cameraName>camera</cameraName>
+        <frameName>camera_depth_optical_frame</frameName>
+        <imageTopicName>rgb/image_raw</imageTopicName>
+        <depthImageTopicName>depth/image_raw</depthImageTopicName>
+        <pointCloudTopicName>depth/points</pointCloudTopicName>
+        <cameraInfoTopicName>rgb/camera_info</cameraInfoTopicName>
+        <depthImageCameraInfoTopicName>depth/camera_info</depthImageCameraInfoTopicName>
+        <pointCloudCutoff>0.5</pointCloudCutoff>
+        <pointCloudCutoffMax>15000</pointCloudCutoffMax>
+        <distortionK1>0.00000001</distortionK1>
+        <distortionK2>0.00000001</distortionK2>
+        <distortionK3>0.00000001</distortionK3>
+        <distortionT1>0.00000001</distortionT1>
+        <distortionT2>0.00000001</distortionT2>
+        <CxPrime>0.0</CxPrime>
+        <Cx>0.0</Cx>
+        <Cy>0.0</Cy>
+        <focalLength>0.0</focalLength>
+        <hackBaseline>0.0</hackBaseline>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!--Velodyne VLP-16 plugin -->
+  <gazebo reference="lidar">
+    <sensor type="gpu_ray" name="lidar-VLP16">
+      <pose>0 0 0 0 0 0</pose>
+      <visualize>false</visualize>
+      <update_rate>30</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>1875</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+          </horizontal>
+          <vertical>
+            <samples>16</samples>
+            <resolution>1</resolution>
+            <min_angle>-0.261799</min_angle>
+            <max_angle>0.261799</max_angle>
+          </vertical>
+        </scan>
+        <range>
+          <min>0.055</min>
+          <max>140</max>
+          <resolution>0.001</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0</mean>
+          <stddev>0</stddev>
+        </noise>
+      </ray>
+      <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_velodyne_gpu_laser.so">
+        <topicName>velodyne_points</topicName>
+        <frameName>/lidar</frameName>
+        <min_range>0.9</min_range>
+        <max_range>130.0</max_range>
+        <gaussianNoise>0.008</gaussianNoise>
+        <robotNamespace>/lidar</robotNamespace>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+</robot>

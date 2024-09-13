@@ -1,0 +1,627 @@
+<?xml version="1.0"?>
+<robot name="dam-typhoon" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:arg name="camera_visual" default="true"/>
+  <xacro:arg name="imu_visual"    default="true"/>
+
+  <!--************************** basic plugin *************************-->
+  <!-- Macro to add the gps_plugin. -->
+  <xacro:macro name="gps_plugin_macro"
+    params="namespace        gps_noise">
+    <gazebo>
+      <plugin name="gps_plugin" filename="libgazebo_gps_plugin.so">
+        <robotNamespace>${namespace}</robotNamespace>
+        <gpsNoise>${gps_noise}</gpsNoise>
+      </plugin>
+    </gazebo>
+  </xacro:macro>
+  <!-- Macro to add the barometer_plugin. -->
+  <xacro:macro name="barometer_plugin_macro"
+    params="namespace        pub_rate         baro_topic">
+    <gazebo>
+      <plugin name="barometer_plugin" filename="libgazebo_barometer_plugin.so">
+        <robotNamespace>${namespace}</robotNamespace>
+        <pubRate>${pub_rate}</pubRate>
+        <baroTopic>${baro_topic}</baroTopic>
+      </plugin>
+    </gazebo>
+  </xacro:macro>
+  <!-- Macro to add the magnetometer_plugin. -->
+  <xacro:macro name="magnetometer_plugin_macro"
+    params="namespace        pub_rate         noise_density    random_walk
+            bias_correlation_time mag_topic">
+    <gazebo>
+      <plugin name="magnetometer_plugin" filename="libgazebo_magnetometer_plugin.so">
+        <robotNamespace>${namespace}</robotNamespace>
+        <pubRate>${pub_rate}</pubRate>
+        <noiseDensity>${noise_density}</noiseDensity>
+        <randomWalk>${random_walk}</randomWalk>
+        <biasCorrelationTime>${bias_correlation_time}</biasCorrelationTime>
+        <magTopic>${mag_topic}</magTopic>
+      </plugin>
+    </gazebo>
+  </xacro:macro>
+
+  <!--imu plugin -->
+  <!-- Ardupilot : Macro to add an IMU. -->
+  <xacro:macro name="ardu_imu_plugin_macro"
+    params="namespace        imu_suffix       parent_link      imu_topic
+            mass_imu_sensor  gyroscope_noise_density
+            gyroscopoe_random_walk            gyroscope_bias_correlation_time
+            gyroscope_turn_on_bias_sigma      accelerometer_noise_density
+            accelerometer_random_walk         accelerometer_bias_correlation_time
+            accelerometer_turn_on_bias_sigma  frame_rate       *inertia         *origin">
+
+    <link name="imu${imu_suffix}_link">
+      <inertial>
+        <mass value="${mass_imu_sensor}" />  <!-- [kg] -->
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <xacro:insert_block name="inertia" />
+      </inertial>
+    </link>
+
+    <joint name="imu${imu_suffix}_joint" type="revolute">
+      <parent link="${parent_link}" />
+      <child link="imu${imu_suffix}_link" />
+      <xacro:insert_block name="origin" />
+      <limit upper="0" lower="0" effort="0" velocity="0" />
+    </joint>
+
+    <gazebo reference="imu${imu_suffix}_link">
+      <sensor name="$imu${imu_suffix}" type="imu">
+        <pose>0 0 0 3.141593 0 0</pose>
+        <update_rate>${frame_rate}</update_rate>
+        <plugin filename="libgazebo_ros_imu_sensor.so" name="imu${imu_suffix}_plugin">
+          <!-- A good description of the IMU parameters can be found in the kalibr documentation:
+          https://github.com/ethz-asl/kalibr/wiki/IMU-Noise-Model-and-Intrinsics -->
+          <robotNamespace>${namespace}</robotNamespace> <!-- (string, required): ros namespace in which the messages are published -->
+          <frameName>imu${imu_suffix}_link</frameName>
+          <linkName>imu${imu_suffix}_link</linkName> <!-- (string, required): name of the body which holds the IMU sensor -->
+          <topicName>${imu_topic}</topicName> <!-- (string): name of the sensor output topic and prefix of service names (defaults to imu) -->
+          <updateRateHZ>${frame_rate}</updateRateHZ>
+          <gyroscopeNoiseDensity>${gyroscope_noise_density}</gyroscopeNoiseDensity> <!-- Gyroscope noise density (two-sided spectrum) [rad/s/sqrt(Hz)] -->
+          <gyroscopeRandomWalk>${gyroscopoe_random_walk}</gyroscopeRandomWalk> <!-- Gyroscope bias random walk [rad/s/s/sqrt(Hz)] -->
+          <gyroscopeBiasCorrelationTime>${gyroscope_bias_correlation_time}</gyroscopeBiasCorrelationTime> <!-- Gyroscope bias correlation time constant [s] -->
+          <gyroscopeTurnOnBiasSigma>${gyroscope_turn_on_bias_sigma}</gyroscopeTurnOnBiasSigma> <!-- Gyroscope turn on bias standard deviation [rad/s] -->
+          <accelerometerNoiseDensity>${accelerometer_noise_density}</accelerometerNoiseDensity> <!-- Accelerometer noise density (two-sided spectrum) [m/s^2/sqrt(Hz)] -->
+          <accelerometerRandomWalk>${accelerometer_random_walk}</accelerometerRandomWalk> <!-- Accelerometer bias random walk. [m/s^2/s/sqrt(Hz)] -->
+          <accelerometerBiasCorrelationTime>${accelerometer_bias_correlation_time}</accelerometerBiasCorrelationTime> <!-- Accelerometer bias correlation time constant [s] -->
+          <accelerometerTurnOnBiasSigma>${accelerometer_turn_on_bias_sigma}</accelerometerTurnOnBiasSigma> <!-- Accelerometer turn on bias standard deviation [m/s^2] -->
+        </plugin>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+  <!--*****************************************************************-->
+
+
+  <!-- Macro to add a mono camera. -->
+  <xacro:macro name="camera_plugin_macro"
+    params="namespace        parent_link      camera_suffix    frame_rate
+            horizontal_fov   image_width      image_height     min_distance
+            max_distance     camera_visual    *origin">
+    <link name="camera_${camera_suffix}_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 3.14" />
+        <geometry>
+          <mesh filename="package://dam-drone/xacro/d435.dae"/>
+        </geometry>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 3.14" />
+        <geometry>
+          <cylinder length="0.01" radius="0.007" />
+        </geometry>
+      </collision>
+
+      <inertial>
+        <mass value="1e-5" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+      </inertial>
+    </link>
+
+    <joint name="camera_${camera_suffix}_joint" type="revolute">
+      <parent link="${parent_link}" />
+      <child link="camera_${camera_suffix}_link" />
+      <xacro:insert_block name="origin" />
+      <limit upper="0" lower="0" effort="0" velocity="0" />
+    </joint>
+
+    <gazebo reference="camera_${camera_suffix}_link">
+      <sensor type="camera" name="camera_${camera_suffix}">
+        <pose>0 0 0 0 0 1.57</pose>
+        <update_rate>${frame_rate}</update_rate>
+        <always_on>true</always_on>
+        <visualize>${camera_visual}</visualize>
+        <camera name="head">
+          <horizontal_fov>${horizontal_fov}</horizontal_fov>
+          <image>
+            <format>R8G8B8</format>
+            <width>${image_width}</width>
+            <height>${image_height}</height>
+          </image>
+          <clip>
+            <near>${min_distance}</near>
+            <far>${max_distance}</far>
+          </clip>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.007</stddev>
+          </noise>
+        </camera>
+        <plugin name="camera_${camera_suffix}_controller" filename="libgazebo_ros_camera.so">
+          <alwaysOn>true</alwaysOn>
+          <updateRate>${frame_rate}</updateRate>
+          <cameraName>camera_${camera_suffix}</cameraName>
+          <imageTopicName>rgb/image_raw</imageTopicName>
+          <cameraInfoTopicName>rgb/camera_info</cameraInfoTopicName>
+          <frameName>camera_${camera_suffix}_link</frameName>
+          <hackBaseline>0.0</hackBaseline>
+          <distortionK1>0.0</distortionK1>
+          <distortionK2>0.0</distortionK2>
+          <distortionK3>0.0</distortionK3>
+          <distortionT1>0.0</distortionT1>
+          <distortionT2>0.0</distortionT2>
+        </plugin>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+
+  <!-- Macro to add a depth camera. -->
+  <xacro:macro name="depth_plugin_macro"
+    params="namespace        parent_link      camera_suffix    frame_rate
+            horizontal_fov   image_width      image_height     min_distance
+            max_distance     *origin">
+    <link name="camera_${camera_suffix}_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 3.14" />
+        <geometry>
+          <mesh filename="package://dam-drone/xacro/d435.dae" />
+        </geometry>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 3.14" />
+        <geometry>
+          <cylinder length="0.01" radius="0.007" />
+        </geometry>
+      </collision>
+
+      <inertial>
+        <mass value="1e-5" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+      </inertial>
+    </link>
+
+    <joint name="camera_${camera_suffix}_joint" type="revolute">
+      <parent link="${parent_link}" />
+      <child link="camera_${camera_suffix}_link" />
+      <xacro:insert_block name="origin" />
+      <limit upper="0" lower="0" effort="0" velocity="0" />
+    </joint>
+
+    <gazebo reference="camera_${camera_suffix}_link">
+      <sensor type="depth" name="camera_{camera_suffix}">
+        <pose>0 0 0 1.57 -1.57 0</pose>
+        <always_on>true</always_on>
+        <update_rate>${frame_rate}</update_rate>
+        <camera>
+          <horizontal_fov>${horizontal_fov}</horizontal_fov>
+          <image>
+            <format>R8G8B8</format>
+            <width>${image_width}</width>
+            <height>${image_height}</height>
+          </image>
+          <clip>
+            <near>${min_distance}</near>
+            <far>${max_distance}</far>
+          </clip>
+        </camera>
+        <plugin name="camera_{camera_suffix}" filename="libgazebo_ros_openni_kinect.so">
+          <alwaysOn>true</alwaysOn>
+          <baseline>0.11</baseline>
+          <updateRate>${frame_rate}</updateRate>
+          <cameraName>camera_${camera_suffix}</cameraName>
+          <imageTopicName>rgb/image_raw</imageTopicName>
+          <cameraInfoTopicName>rgb/camera_info</cameraInfoTopicName>
+          <depthImageTopicName>depth/image_raw</depthImageTopicName>
+          <depthImageCameraInfoTopicName>depth/camera_info</depthImageCameraInfoTopicName>
+          <pointCloudTopicName>depth/points</pointCloudTopicName>
+          <frameName>camera_${camera_suffix}_link</frameName>
+          <pointCloudCutoff>0.5</pointCloudCutoff>
+          <distortionK1>0.0</distortionK1>
+          <distortionK2>0.0</distortionK2>
+          <distortionK3>0.0</distortionK3>
+          <distortionT1>0.0</distortionT1>
+          <distortionT2>0.0</distortionT2>
+        </plugin>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+
+  <!-- Macro to add a roation 3d lidar. -->
+  <xacro:macro name="lidar_plugin_macro"
+    params="namespace        parent_link      lidar_suffix     frame_rate
+            h_num_ray        v_num_ray        h_min_angle      h_max_angle
+            v_min_angle      v_max_angle      collision_range  min_distance
+            max_distance     noise            lidar_visual     *origin">
+    <link name="lidar_on_drone_link">
+      <inertial>
+        <mass value="0.01"/>
+        <origin xyz="0 0 0"/>
+        <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7"/>
+      </inertial>
+      <visual>
+        <origin xyz="0.1 0.002 0" />
+        <geometry>
+          <box size="0.05 0.05 0.15"/>
+        </geometry>
+      </visual>
+    </link>
+
+    <joint name="lidar_on_drone_joint" type="fixed">
+      <origin xyz="-0.05 0 0.05" rpy="0 0 0" />
+      <parent link="base_link"/>
+      <child link="lidar_on_drone_link"/>
+      <limit effort="0" upper="0" lower="0" velocity="0"/>
+    </joint>
+    
+    <link name="${lidar_suffix}_holder_base_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 1.57 0" />
+        <geometry>
+          <cylinder length="0.05" radius="0.007" />
+        </geometry>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="0 1.57 0" />
+        <geometry>
+          <cylinder length="0.05" radius="0.007" />
+        </geometry>
+      </collision>
+
+      <inertial>
+        <mass value="1e-5" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+      </inertial>
+    </link>
+
+    <joint name="${lidar_suffix}_holder_base_joint" type="fixed">
+      <parent link="lidar_on_drone_link" />
+      <child link="${lidar_suffix}_holder_base_link" />
+      <origin xyz="0.12 0 0.06" rpy="0 0 0" />
+      <axis xyz="0 1 0" />
+      <limit lower="-1e+16" upper="1e+16" effort="3" velocity="1"/>
+    </joint>
+
+    <link name="${lidar_suffix}_holder_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <cylinder length="0.014" radius="0.05" />
+        </geometry>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <cylinder length="0.014" radius="0.05" />
+        </geometry>
+      </collision>
+
+      <inertial>
+        <mass value="1e-5" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+      </inertial>
+    </link>
+
+    <joint name="${lidar_suffix}_holder_joint" type="fixed">
+      <parent link="${lidar_suffix}_holder_base_link" />
+      <child link="${lidar_suffix}_holder_link" />
+      <origin xyz="0.07 0 0" rpy="0 0 0" />
+      <axis xyz="1 0 0" />
+      <limit lower="-1e16" upper="1e16" effort="10.0" velocity="10"/>
+    </joint>
+
+
+    <link name="${lidar_suffix}_base_link">
+      <visual>
+        <origin xyz="0 0 -0.05" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://velodyne_description/meshes/VLP16_base_2.dae"/>
+        </geometry>
+      </visual>
+      <visual>
+        <origin xyz="0 0 -0.05" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://velodyne_description/meshes/VLP16_base_1.dae" />
+        </geometry>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 -0.05" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://velodyne_description/meshes/VLP16_base_1.dae"/>
+        </geometry>
+      </collision>
+
+      <inertial>
+        <mass value="1e-5" />
+        <origin xyz="0 0 -0.05" rpy="0 0 0" />
+        <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+      </inertial>
+    </link>
+
+    <joint name="${lidar_suffix}_base_joint" type="fixed">
+      <parent link="${lidar_suffix}_holder_link" />
+      <child link="${lidar_suffix}_base_link" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <limit upper="0" lower="0" effort="0" velocity="0" />
+    </joint>
+
+    <link name="${lidar_suffix}_top_link">
+      <visual>
+        <origin xyz="0 0 -0.05" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://velodyne_description/meshes/VLP16_scan.dae" scale="1 1 1"/>
+        </geometry>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 -0.05" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://velodyne_description/meshes/VLP16_scan.dae" scale="1 1 1"/>
+        </geometry>
+      </collision>
+
+      <inertial>
+        <mass value="1e-5" />
+        <origin xyz="0 0 -0.05" rpy="0 0 0" />
+        <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+      </inertial>
+    </link>
+
+    <joint name="${lidar_suffix}_top_joint" type="fixed">
+      <parent link="${lidar_suffix}_base_link" />
+      <child link="${lidar_suffix}_top_link" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <limit upper="0" lower="0" effort="0" velocity="0" />
+    </joint>
+
+    <link name="${lidar_suffix}_imu_link">
+      <inertial>
+        <mass value="0.015" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+      </inertial>
+    </link>
+
+    <joint name="${lidar_suffix}_imu_joint" type="fixed">
+      <parent link="${lidar_suffix}_top_link" />
+      <child link="${lidar_suffix}_imu_link" />
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <limit upper="0" lower="0" effort="0" velocity="0" />
+    </joint>
+
+    <gazebo reference="${lidar_suffix}_top_link">
+      <sensor type="ray" name="${lidar_suffix}_lidar">
+        <always_on>true</always_on>
+        <update_rate>${frame_rate}</update_rate>
+        <visualize>${lidar_visual}</visualize>
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>${h_num_ray}</samples>
+              <resolution>1</resolution>
+              <min_angle>${h_min_angle}</min_angle>
+              <max_angle>${h_max_angle}</max_angle>
+            </horizontal>
+            <vertical>
+              <samples>${v_num_ray}</samples>
+              <resolution>1</resolution>
+              <min_angle>${v_min_angle}</min_angle>
+              <max_angle>${v_max_angle}</max_angle>
+            </vertical>
+          </scan>
+          <range>
+            <min>${collision_range}</min>
+            <max>${max_distance+1}</max>
+            <resolution>0.001</resolution>
+          </range>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.0</stddev>
+          </noise>
+        </ray>
+        <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_velodyne_laser.so">
+          <topicName>${lidar_suffix}_lidar/scan</topicName>
+          <frameName>${lidar_suffix}_top_link</frameName>
+          <min_range>${min_distance}</min_range>
+          <max_range>${max_distance}</max_range>
+          <gaussianNoise>${noise}</gaussianNoise>
+        </plugin>
+       </sensor>
+    </gazebo> 
+
+    <gazebo>
+      <plugin name="${lidar_suffix}_imu_sensor" filename="libhector_gazebo_ros_imu.so">
+        <updateRate>500.0</updateRate>
+        <bodyName>${lidar_suffix}_top_link</bodyName>
+        <frameId>${lidar_suffix}_imu_link</frameId>
+        <topicName>${lidar_suffix}_lidar/imu</topicName>
+        <rpyOffset>0 0 0</rpyOffset> <!-- deprecated -->
+        <gaussianNoise>0.0</gaussianNoise>  <!-- deprecated -->
+        <!-- <accelDrift>0.1 0.1 0.1</accelDrift> -->
+        <!-- <accelGaussianNoise>0.35 0.35 0.3</accelGaussianNoise>  -->
+        <!-- <rateDrift>0.1 0.1 0.1</rateDrift> -->
+        <!-- <rateGaussianNoise>0.05 0.05 0.015</rateGaussianNoise> --> -->
+      </plugin> -->
+
+      <plugin name="${parent_link}_imu_sensor" filename="libhector_gazebo_ros_imu.so">
+        <updateRate>500.0</updateRate>
+        <bodyName>${parent_link}</bodyName>
+        <frameId>${parent_link}</frameId>
+        <topicName>${parent_link}/imu</topicName>
+        <rpyOffset>0 0 0</rpyOffset> <!-- deprecated -->
+        <gaussianNoise>0</gaussianNoise>  <!-- deprecated -->
+        <!-- <accelDrift>0.1 0.1 0.1</accelDrift>
+        <accelGaussianNoise>0.35 0.35 0.3</accelGaussianNoise>
+        <rateDrift>0.1 0.1 0.1</rateDrift>
+        <rateGaussianNoise>0.05 0.05 0.015</rateGaussianNoise> -->
+      </plugin>
+
+      <plugin name="${lidar_suffix}_gps_sensor" filename="libhector_gazebo_ros_gps.so">
+        <updateRate>50.0</updateRate>
+        <bodyName>${parent_link}</bodyName>
+        <frameId>${parent_link}</frameId>
+        <topicName>${lidar_suffix}_lidar/fix</topicName>
+        <velocityTopicName>${lidar_suffix}_lidar/fix_velocity</velocityTopicName>
+        <referenceLatitude>49.860246</referenceLatitude>
+        <referenceLongitude>8.687077</referenceLongitude>
+
+        <!-- <drift>0.02 -0.1 0</drift>
+        <gaussianNoise>0.05 0.05 0.05</gaussianNoise> -->
+
+        <!-- <drift>0 -0.1 0</drift> -->
+        <gaussianNoise>0.05 0.05 0.05</gaussianNoise>
+        <!-- <velocityDrift>0 0 0</velocityDrift> -->
+        <!-- <velocityGaussianNoise>0.05 0.05 0.05</velocityGaussianNoise>  -->
+      </plugin>
+    </gazebo>
+
+  <!--<gazebo reference="${lidar_suffix}_imu_link">
+      <gravity>true</gravity>
+      <sensor name="${lidar_suffix}_imu_sensor" type="imu">
+        <pose>0 0 0 0 0 0</pose>
+        <always_on>true</always_on>
+        <update_rate>500</update_rate>
+        <visualize>true</visualize>
+        <topic>${lidar_suffix}_lidar/imu</topic>
+        <plugin filename="libgazebo_ros_imu_sensor.so" name="${namespace}/${lidar_suffix}_imu_plugin">
+          <robotNamespace>${namespace}</robotNamespace>
+          <frameName>${lidar_suffix}_imu_link</frameName>
+          <linkName>${lidar_suffix}_imu_link</linkName> 
+          <topicName>${lidar_suffix}_lidar/imu</topicName>
+          <updateRateHZ>500</updateRateHZ>
+          <gyroscopeNoiseDensity>0.00018665</gyroscopeNoiseDensity>  Gyroscope noise density (two-sided spectrum) [rad/s/sqrt(Hz)] -->
+          <!--<gyroscopeRandomWalk>0.000038785</gyroscopeRandomWalk>  Gyroscope bias random walk [rad/s/s/sqrt(Hz)] -->
+          <!--<gyroscopeBiasCorrelationTime>1000.0</gyroscopeBiasCorrelationTime>  Gyroscope bias correlation time constant [s] -->
+          <!--<gyroscopeTurnOnBiasSigma>0.0087</gyroscopeTurnOnBiasSigma>  Gyroscope turn on bias standard deviation [rad/s] -->
+          <!--<accelerometerNoiseDensity>0.00186</accelerometerNoiseDensity>  Accelerometer noise density (two-sided spectrum) [m/s^2/sqrt(Hz)] -->
+          <!--<accelerometerRandomWalk>0.006</accelerometerRandomWalk>  Accelerometer bias random walk. [m/s^2/s/sqrt(Hz)] -->
+          <!--<accelerometerBiasCorrelationTime>300.0</accelerometerBiasCorrelationTime>  Accelerometer bias correlation time constant [s] -->
+          <!--<accelerometerTurnOnBiasSigma>0.1960</accelerometerTurnOnBiasSigma>  Accelerometer turn on bias standard deviation [m/s^2]
+        </plugin>
+      </sensor>
+  </gazebo> -->
+
+    <gazebo>
+      <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+        <robotNamespace>${namespace}</robotNamespace>
+      </plugin>
+    </gazebo>
+
+    <transmission name="holder_tran">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${lidar_suffix}_holder_joint">
+        <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="holder_motor">
+        <hardwareInterface>hardware_interface/VelocityActuatorInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <transmission name="holder_trans">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${lidar_suffix}_holder_base_joint">
+        <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="holders_motor">
+        <hardwareInterface>hardware_interface/PositionActuatorInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+  </xacro:macro>
+
+  <!-- Ardupilot : Macro to add the mavlink interface. -->
+  <xacro:macro name="ardu_mavlink_interface_macro"
+    params="imu_suffix">
+    <gazebo>
+      <plugin name="mavlink_interface" filename="libArduPilotPlugin.so">
+        <fdm_addr>127.0.0.1</fdm_addr>
+        <fdm_port_in>9002</fdm_port_in>
+        <fdm_port_out>9003</fdm_port_out>
+        <modelXYZToAirplaneXForwardZDown>0 0 0 3.141593 0 0</modelXYZToAirplaneXForwardZDown>
+        <gazeboXYZToNED>0 0 0 3.141593 0 0</gazeboXYZToNED>
+        <imuName>imu${imu_suffix}</imuName>
+        <connectionTimeoutMaxCount>5</connectionTimeoutMaxCount>
+        <control channel="0">
+          <type>VELOCITY</type>
+          <offset>0</offset>
+          <p_gain>0.20</p_gain>
+          <i_gain>0</i_gain>
+          <d_gain>0</d_gain>
+          <i_max>0</i_max>
+          <i_min>0</i_min>
+          <cmd_max>2.5</cmd_max>
+          <cmd_min>-2.5</cmd_min>
+          <jointName>rotor_0_joint</jointName>
+          <multiplier>1100</multiplier>
+          <controlVelocitySlowdownSim>1</controlVelocitySlowdownSim>
+        </control>
+        <control channel="1">
+          <type>VELOCITY</type>
+          <offset>0</offset>
+          <p_gain>0.20</p_gain>
+          <i_gain>0</i_gain>
+          <d_gain>0</d_gain>
+          <i_max>0</i_max>
+          <i_min>0</i_min>
+          <cmd_max>2.5</cmd_max>
+          <cmd_min>-2.5</cmd_min>
+          <jointName>rotor_1_joint</jointName>
+          <multiplier>1100</multiplier>
+          <controlVelocitySlowdownSim>1</controlVelocitySlowdownSim>
+        </control>
+        <control channel="2">
+          <type>VELOCITY</type>
+          <offset>0</offset>
+          <p_gain>0.20</p_gain>
+          <i_gain>0</i_gain>
+          <d_gain>0</d_gain>
+          <i_max>0</i_max>
+          <i_min>0</i_min>
+          <cmd_max>2.5</cmd_max>
+          <cmd_min>-2.5</cmd_min>
+          <jointName>rotor_2_joint</jointName>
+          <multiplier>-1100</multiplier>
+          <controlVelocitySlowdownSim>1</controlVelocitySlowdownSim>
+        </control>
+        <control channel="3">
+          <type>VELOCITY</type>
+          <offset>0</offset>
+          <p_gain>0.10</p_gain>
+          <i_gain>0</i_gain>
+          <d_gain>0</d_gain>
+          <i_max>0</i_max>
+          <i_min>0</i_min>
+          <cmd_max>2.5</cmd_max>
+          <cmd_min>-2.5</cmd_min>
+          <jointName>rotor_3_joint</jointName>
+          <multiplier>-1100</multiplier>
+          <controlVelocitySlowdownSim>1</controlVelocitySlowdownSim>
+        </control>
+      </plugin>
+    </gazebo>
+  </xacro:macro>
+
+</robot>

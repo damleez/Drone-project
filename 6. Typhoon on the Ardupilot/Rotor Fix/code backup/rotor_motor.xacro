@@ -1,0 +1,127 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <!-- Main multirotor link -->
+  <xacro:macro name="multirotor_base_macro"
+    params="robot_namespace">
+    
+    <!-- attach multirotor_base_plugin to the base_link -->
+    <gazebo>
+      <plugin filename="libgazebo_multirotor_base_plugin.so" name="rosbag">
+        <robotNamespace>${robot_namespace}</robotNamespace>
+        <linkName>base_link</linkName>
+        <rotorVelocitySlowdownSim>${rotor_velocity_slowdown_sim}</rotorVelocitySlowdownSim>
+      </plugin>
+    </gazebo>
+
+  </xacro:macro>
+
+  <!-- Ardupilot : Rotor joint and link -->
+  <xacro:macro name="ardu_vertical_rotor"
+    params="suffix           direction       
+            motor_number     
+            mesh            forward_1        forward_2
+            joint_x_y_z      joint_r_p_y axis_x_y_z">
+    <link name="rotor_${motor_number}">
+      <visual>
+        <geometry>
+          <mesh filename="package://dam-drone/xacro/${mesh}.stl" scale="0.002 0.002 0.002" />
+        </geometry>
+        <material name="blue"/>
+      </visual>
+
+      <collision>
+        <geometry>
+          <cylinder length="0.005" radius="0.128" /> <!-- [m] -->
+        </geometry>
+      </collision>
+
+      <inertial>
+        <mass value="0.005" /> <!-- [kg] -->
+        <inertia ixx="9.75e-07" ixy="0" ixz="0" iyy="0.000273104" iyz="0" izz="0.000274004"/>
+      </inertial>
+    </link>
+
+    <joint name="rotor_${motor_number}_joint" type="continuous">
+      <origin xyz="${joint_x_y_z}" rpy="${joint_r_p_y}"/>
+      <parent link="base_link" />
+      <child link="rotor_${motor_number}" />
+      <axis xyz="${axis_x_y_z}"/>
+      <limit effort="10" lower="-1e+16" upper="1e+16" velocity="-1"/>
+      <dynamics damping="0.005"/>
+    </joint>
+
+    <gazebo>
+      <plugin name="${suffix}_motor_blade_1" filename="libLiftDragPlugin.so">
+        <a0>0.3</a0>
+        <alpha_stall>1.4</alpha_stall>
+        <cla>4.2500</cla>
+        <cda>0.10</cda>
+        <cma>0.00</cma>
+        <cla_stall>-0.025</cla_stall>
+        <cda_stall>0.0</cda_stall>
+        <cma_stall>0.0</cma_stall>
+        <area>0.002</area>
+        <air_density>1.2041</air_density>
+        <cp>0.084 0 0</cp>
+        <forward>${forward_1}</forward>
+        <upward>0 0 1</upward>
+        <link_name>rotor_${motor_number}</link_name>
+      </plugin>
+      <plugin name="${suffix}_motor_blade_2" filename="libLiftDragPlugin.so">
+        <a0>0.3</a0>
+        <alpha_stall>1.4</alpha_stall>
+        <cla>4.2500</cla>
+        <cda>0.10</cda>
+        <cma>0.00</cma>
+        <cla_stall>-0.025</cla_stall>
+        <cda_stall>0.0</cda_stall>
+        <cma_stall>0.0</cma_stall>
+        <area>0.002</area>
+        <air_density>1.2041</air_density>
+        <cp>-0.084 0 0</cp>
+        <forward>${forward_2}</forward>
+        <upward>0 0 1</upward>
+        <link_name>rotor_${motor_number}</link_name>
+      </plugin>
+    </gazebo>
+  </xacro:macro>
+
+  <xacro:macro name="ardu_vertical_reg_rotor"
+    params="reg_side  mesh  mesh_scale  joint_x_y_z  joint_r_p_y">
+
+    <link name="${reg_side}_leg">
+      <visual>
+        <geometry>
+          <mesh filename="package://dam-drone/xacro/urdf/TyphoonH480/meshes/${mesh}.stl" scale="${mesh_scale}" />
+        </geometry>
+        <material name="darkgrey"/>
+      </visual>
+        
+      <collision>
+        <origin rpy="7.9 4.95 4.68" xyz="-0.01 -0.28628 -0.414504"/>
+        <geometry>
+          <cylinder length="0.6" radius="0.030418"/>
+        </geometry>
+      </collision>
+      <collision>
+        <origin rpy="-0.552636 0 0" xyz="0.00104 -0.17006 -0.242374"/>
+        <geometry>
+          <cylinder length="0.383786" radius="0.01829968"/>
+        </geometry>
+      </collision>
+
+      <inertial>
+        <mass value="0.1"/>
+        <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+      </inertial>
+    </link>
+
+    <joint name="${reg_side}_leg_joint" type="revolute">
+      <origin xyz="${joint_x_y_z}" rpy="${joint_r_p_y}"/>
+      <parent link="base_link" />
+      <child link="${reg_side}_leg" />
+      <limit upper="0" lower="0" effort="0" velocity="0" />
+    </joint>
+
+  </xacro:macro>
+</robot>

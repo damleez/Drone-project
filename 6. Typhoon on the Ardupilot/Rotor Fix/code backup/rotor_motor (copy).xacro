@@ -1,0 +1,256 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <!-- Main multirotor link -->
+    <xacro:macro name="multirotor_base_macro"
+        params="robot_namespace">
+        <!-- attach multirotor_base_plugin to the base_link -->
+        <gazebo>
+            <plugin filename="libgazebo_multirotor_base_plugin.so" name="rosbag">
+                <robotNamespace>${robot_namespace}</robotNamespace>
+                <linkName>base_link</linkName>
+                <rotorVelocitySlowdownSim>${rotor_velocity_slowdown_sim}</rotorVelocitySlowdownSim>
+            </plugin>
+        </gazebo>
+    </xacro:macro>
+
+
+    <!--Rotor Plugin-->
+    <gazebo>
+        <plugin name='rosbag' filename='librotors_gazebo_multirotor_base_plugin.so'>
+            <robotNamespace></robotNamespace>
+            <linkName>base_link</linkName>
+             <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+        </plugin>
+        <plugin name='front_right_motor_model' filename='librotors_gazebo_motor_model.so'>
+            <robotNamespace></robotNamespace>
+            <jointName>rotor_0_joint</jointName>
+            <linkName>rotor_0</linkName>
+            <turningDirection>ccw</turningDirection>
+            <timeConstantUp>0.0125</timeConstantUp>
+            <timeConstantDown>0.025</timeConstantDown>
+            <maxRotVelocity>1500</maxRotVelocity>
+            <motorConstant>8.54858e-06</motorConstant>
+            <momentConstant>0.06</momentConstant>
+            <commandSubTopic>/gazebo/command/motor_speed</commandSubTopic>
+            <motorNumber>4</motorNumber>
+            <rotorDragCoefficient>0.000806428</rotorDragCoefficient>
+            <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+            <motorSpeedPubTopic>/motor_speed/4</motorSpeedPubTopic>
+            <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+            <!--
+            <joint_control_pid>
+                <p>0.1</p>
+                <i>0</i>
+                <d>0</d>
+                <iMax>0</iMax>
+                <iMin>0</iMin>
+                <cmdMax>3</cmdMax>
+                <cmdMin>-3</cmdMin>
+            </joint_control_pid>
+            -->
+        </plugin>
+    </gazebo>
+
+  <gazebo>  
+    <plugin name='back_left_motor_model' filename='librotors_gazebo_motor_model.so'>
+      <robotNamespace></robotNamespace>
+      <jointName>rotor_1_joint</jointName>
+      <linkName>rotor_1</linkName>
+      <turningDirection>cw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1500</maxRotVelocity>
+      <motorConstant>8.54858e-06</motorConstant>
+      <momentConstant>0.06</momentConstant>
+      <commandSubTopic>/gazebo/command/motor_speed</commandSubTopic>
+      <motorNumber>5</motorNumber>
+      <rotorDragCoefficient>0.000806428</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <motorSpeedPubTopic>/motor_speed/5</motorSpeedPubTopic>
+      <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+      <!--
+      <joint_control_pid>
+        <p>0.1</p>
+        <i>0</i>
+        <d>0</d>
+        <iMax>0</iMax>
+        <iMin>0</iMin>
+        <cmdMax>3</cmdMax>
+        <cmdMin>-3</cmdMin>
+      </joint_control_pid>
+      -->
+    </plugin>
+  </gazebo>
+
+  <gazebo>  
+    <plugin name='front_left_motor_model' filename='librotors_gazebo_motor_model.so'>
+      <robotNamespace></robotNamespace>
+      <jointName>rotor_2_joint</jointName>
+      <linkName>rotor_2</linkName>
+      <turningDirection>cw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1500</maxRotVelocity>
+      <motorConstant>8.54858e-06</motorConstant>
+      <momentConstant>0.06</momentConstant>
+      <commandSubTopic>/gazebo/command/motor_speed</commandSubTopic>
+      <motorNumber>2</motorNumber>
+      <rotorDragCoefficient>0.000806428</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <motorSpeedPubTopic>/motor_speed/2</motorSpeedPubTopic>
+      <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+      <!--
+      <joint_control_pid>
+        <p>0.1</p>
+        <i>0</i>
+        <d>0</d>
+        <iMax>0</iMax>
+        <iMin>0</iMin>
+        <cmdMax>3</cmdMax>
+        <cmdMin>-3</cmdMin>
+      </joint_control_pid>
+      -->
+    </plugin>
+  </gazebo>
+  
+  <gazebo>
+    <plugin name='back_right_motor_model' filename='librotors_gazebo_motor_model.so'>
+      <robotNamespace></robotNamespace>
+      <jointName>rotor_3_joint</jointName>
+      <linkName>rotor_3</linkName>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1500</maxRotVelocity>
+      <motorConstant>8.54858e-06</motorConstant>
+      <momentConstant>0.06</momentConstant>
+      <commandSubTopic>/gazebo/command/motor_speed</commandSubTopic>
+      <motorNumber>3</motorNumber>
+      <rotorDragCoefficient>0.000806428</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <motorSpeedPubTopic>/motor_speed/3</motorSpeedPubTopic>
+      <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+      <!--
+      <joint_control_pid>
+        <p>0.1</p>
+        <i>0</i>
+        <d>0</d>
+        <iMax>0</iMax>
+        <iMin>0</iMin>
+        <cmdMax>3</cmdMax>
+        <cmdMin>-3</cmdMin>
+      </joint_control_pid>
+      -->
+    </plugin>
+  </gazebo>
+  
+  <gazebo>  
+    <plugin name='back_left_motor_model' filename='librotors_gazebo_motor_model.so'>
+      <robotNamespace></robotNamespace>
+      <jointName>rotor_4_joint</jointName>
+      <linkName>rotor_4</linkName>
+      <turningDirection>cw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1500</maxRotVelocity>
+      <motorConstant>8.54858e-06</motorConstant>
+      <momentConstant>0.06</momentConstant>
+      <commandSubTopic>/gazebo/command/motor_speed</commandSubTopic>
+      <motorNumber>0</motorNumber>
+      <rotorDragCoefficient>0.000806428</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <motorSpeedPubTopic>/motor_speed/0</motorSpeedPubTopic>
+      <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+      <!--
+      <joint_control_pid>
+        <p>0.1</p>
+        <i>0</i>
+        <d>0</d>
+        <iMax>0</iMax>
+        <iMin>0</iMin>
+        <cmdMax>3</cmdMax>
+        <cmdMin>-3</cmdMin>
+      </joint_control_pid>
+      -->
+    </plugin>
+  </gazebo>
+
+  <gazebo>
+    <plugin name='front_left_motor_model' filename='librotors_gazebo_motor_model.so'>
+      <robotNamespace></robotNamespace>
+      <jointName>rotor_5_joint</jointName>
+      <linkName>rotor_5</linkName>
+      <turningDirection>ccw</turningDirection>
+      <timeConstantUp>0.0125</timeConstantUp>
+      <timeConstantDown>0.025</timeConstantDown>
+      <maxRotVelocity>1500</maxRotVelocity>
+      <motorConstant>8.54858e-06</motorConstant>
+      <momentConstant>0.06</momentConstant>
+      <commandSubTopic>/gazebo/command/motor_speed</commandSubTopic>
+      <motorNumber>1</motorNumber>
+      <rotorDragCoefficient>0.000806428</rotorDragCoefficient>
+      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
+      <motorSpeedPubTopic>/motor_speed/1</motorSpeedPubTopic>
+      <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+      <!--
+      <joint_control_pid>
+        <p>0.1</p>
+        <i>0</i>
+        <d>0</d>
+        <iMax>0</iMax>
+        <iMin>0</iMin>
+        <cmdMax>3</cmdMax>
+        <cmdMin>-3</cmdMin>
+      </joint_control_pid>
+      -->
+    </plugin>
+  </gazebo>
+
+  <!-- </xacro:macro> -->
+  <xacro:macro name="ardu_vertical_reg_rotor"
+    params="reg_side  mesh  mesh_scale  joint_x_y_z  joint_r_p_y">
+
+    <link name="${reg_side}_leg">
+      <visual>
+        <geometry>
+          <mesh filename="package://dam-drone/xacro/urdf/TyphoonH480/meshes/${mesh}.dae" scale="${mesh_scale}" />
+        </geometry>
+        <material name="darkgrey"/>
+      </visual>
+        
+      <!-- <collision>
+        <origin rpy="7.9 4.95 4.68" xyz="-0.01 -0.28628 -0.414504"/>
+        <geometry>
+          <cylinder length="0.6" radius="0.030418"/>
+          
+        </geometry>
+      </collision>
+      <collision>
+        <origin rpy="-0.552636 0 0" xyz="0.00104 -0.17006 -0.242374"/>
+        <geometry>
+          <cylinder length="0.383786" radius="0.01829968"/>
+        </geometry>
+      </collision> -->
+
+      <collision>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://dam-drone/xacro/urdf/TyphoonH480/meshes/${mesh}.dae" scale="${mesh_scale}" />
+        </geometry>
+      </collision>
+
+      <inertial>
+        <mass value="0.1"/>
+        <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+      </inertial>
+    </link>
+
+    <joint name="${reg_side}_leg_joint" type="revolute">
+      <origin xyz="${joint_x_y_z}" rpy="${joint_r_p_y}"/>
+      <parent link="base_link" />
+      <child link="${reg_side}_leg" />
+      <limit upper="0" lower="0" effort="0" velocity="0" />
+    </joint>
+
+  </xacro:macro>
+</robot>
